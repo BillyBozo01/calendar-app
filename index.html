@@ -77,6 +77,9 @@
 </head>
 <body>
   <button onclick="downloadEvents()">⬇️ Export JSON</button>
+  <input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
+<button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
+
 
   <div class="calendar-header">
     <h2> Calendar</h2>
@@ -451,6 +454,28 @@ function importEvents() {
   };
   reader.readAsText(file);
 }
+function importEvents(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error("Invalid JSON format");
+      if (!confirm("Importing will add events to your current calendar. Continue?")) return;
+      events = events.concat(imported);
+      localStorage.setItem("calendarEvents", JSON.stringify(events));
+      renderCalendar();
+      renderTaskList();
+      alert("Import successful!");
+    } catch (err) {
+      alert("Failed to import JSON: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 
 </script>
 

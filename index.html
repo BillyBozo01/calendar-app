@@ -556,10 +556,23 @@ function downloadFromDrive() {
       alert("✅ Loaded from Google Drive!");
     })
     .catch(err => alert("❌ Failed to load: " + err.message));
-    window.onload = () => {
+    
+};
+window.onload = () => {
   renderCalendar();
-  const isSignedIn = gapi.auth2.getAuthInstance()?.isSignedIn.get();
-  if (isSignedIn) downloadFromDrive();
+
+  // Wait a moment to check if signed in, then sync
+  gapi.load("client:auth2", () => {
+    gapi.client.init({
+      clientId: CLIENT_ID,
+      scope: SCOPES
+    }).then(() => {
+      const auth = gapi.auth2.getAuthInstance();
+      if (auth.isSignedIn.get()) {
+        downloadFromDrive();
+      }
+    });
+  });
 };
 
 }

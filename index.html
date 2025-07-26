@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+, <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -76,6 +76,8 @@
 
 </head>
 <body>
+  <button onclick="downloadEvents()">⬇️ Export JSON</button>
+
   <div class="calendar-header">
     <h2> Calendar</h2>
     <div class="calendar-controls">
@@ -413,6 +415,43 @@ function completeTask(task, taskElement) {
 }
 
 renderCalendar();
+function downloadEvents() {
+  const dataStr = JSON.stringify(events, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "calendar-events.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}
+
+function importEvents() {
+  const fileInput = document.getElementById("importFile");
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (!Array.isArray(importedData)) throw new Error("Invalid format");
+      events = importedData;
+      localStorage.setItem("calendarEvents", JSON.stringify(events));
+      renderCalendar();
+      renderTaskList();
+      alert("Events imported successfully ✅");
+    } catch (err) {
+      alert("Error importing JSON file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 </script>
 
 

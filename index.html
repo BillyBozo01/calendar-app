@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title> Calendar</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; font-family: sans-serif;
+    }
+    body {
+      display: flex; flex-direction: column; height: 100vh;
+    }
+    .calendar-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; background: #f0f0f0;
+    }
+    .calendar-controls select, .calendar-controls button {
+      margin-left: 5px;
+    }
+    .calendar-wrapper {
+      flex: 1; display: flex;
+    }
+    .calendar-view {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: auto;
+    }
+    #calendar {
+      flex: 1; display: grid;
+    }
+    .time-column {
+      width: 60px;
+      display: flex; flex-direction: column;
+      border-right: 1px solid #ccc;
+    }
+    .time-slot {
+      height: 60px; font-size: 10px;
+      padding: 2px; border-bottom: 1px solid #ccc;
+    }
+    .calendar-cell {
+      border: 1px solid #ccc; height: 60px;
+      position: relative;
+      cursor: pointer;
+    }
+    .header-row {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      background: #f9f9f9; font-weight: bold; text-align: center;
+      border-bottom: 1px solid #ccc;
+    }
+    .event {
+      position: absolute; top: 2px; left: 2px; right: 2px;
+      background: lightblue; font-size: 10px; padding: 2px;
+      border-radius: 3px;
+    }
+    .event.task { background: lightgreen; }
+    .task-panel {
+      width: 250px; background: #fafafa;
+      padding: 10px; box-sizing: border-box;
+      border-left: 1px solid #ccc;
+      overflow-y: auto;
+    }
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none; justify-content: center; align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: white; padding: 20px;
+      border-radius: 8px; width: 300px;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+   <meta name="theme-color" content="#f0f0f0">
+
+</head>
+<body>
+  <div class="calendar-header">
+    <h2> Calendar</h2>
+    <div class="calendar-controls">
+      <button onclick="navigate(-1)">⬅️</button>
+      <select id="viewSelect" onchange="renderCalendar()">
+        <option value="day">Day</option>
+        <option value="week" selected>Week</option>
+        <option value="month">Month</option>
+      </select>
+      <button onclick="navigate(1)">➡️</button>
+      <button onclick="openEventModal()">➕ Event</button>
+      <button onclick="openTaskModal()">✅ Task</button>
+      <button onclick="openRoutineModal()">🔁 Routine</button>
+    </div>
+  </div>
+
+  <div class="calendar-wrapper">
+    <div class="calendar-view">
+      <div id="weekdayHeaders" class="header-row"></div>
+      <div id="calendar"></div>
+    </div>
+    <div class="task-panel">
+      <h4>Task List</h4>
+      <div id="taskList"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+<script>
+let events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+let currentDate = new Date();
+const START_HOUR = 8, END_HOUR = 20;
+const modalEl = document.getElementById("modal");
+const modalContent = document.getElementById("modalContent");
+const calendarEl = document.getElementById("calendar");
+const headerEl = document.getElementById("weekdayHeaders");
+const taskListEl = document.getElementById("taskList");
+
+function getView() {
+  return document.getElementById("viewSelect").value;
+}
+
+function navigate(dir) {
+  if (getView() === "month") currentDate.setMonth(currentDate.getMonth() + dir);
+  else currentDate.setDate(currentDate.getDate() + (getView() === "week" ? 7 : 1) * dir);
+  renderCalendar();
+}
+
+function openModal(html) {
+  modalContent.innerHTML = html;
+  modalEl.style.display = "flex";
+}
+function closeModal() { modalEl.style.display = "none"; }
+
+function openEventModal(date = new Date(), hour = START_HOUR) {
+  const dateStr = date.toISOString().split("T")[0];
+  openModal(`
+    <h3>Add Event</h3>
+    <label>Title: <input id="eventTitle"></label><br>
+    <label>Date: <input type="date" id="eventDate" value="${dateStr}"></label><br>
+    <label>Time: <input type="time" id="eventTime" value="${hour.toString().padStart(2, '0')}:00"></label><br>
+    <label>Duration (min): <input type="number" id="eventDuration" value="60"></label><br>
+    <button onclick="saveEvent()">Save</button>
+    <button onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function saveEvent() {
+  const title = document.getElementById("eventTitle").value.trim();
+  const date = new Date(document.getElementById("eventDate").value).toDateString();
+  const [h, m] = document.getElementById("eventTime").value.split(":").map(Number);
+  const start = h * 60 + m;
+  const duration = parseInt(document.getElementById("eventDuration").value);
+  events.push({ title, date, start, duration, type: "event" });
+  localStorage.setItem("calendarEvents", JSON.stringify(events));
+  closeModal();
+  renderCalendar();
+  renderTaskList();
+}
+
+function openTaskModal() {
+  const today = new Date().toISOString().split("T")[0];
+  openModal(`
+    <h3>Add Task</h3>
+    <label>Title: <input id="taskTitle"></label><br>
+    <label>Due Date: <input type="date" id="taskDueDate" value="${today}"></label><br>
+    <label>Duration (min): <input type="number" id="taskDuration" value="60"></label><br>
+    <button onclick="saveTask()">Save</button>
+    <button onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function saveTask() {
+  const title = document.getElementById("taskTitle").value.trim();
+  const due = new Date(document.getElementById("taskDueDate").value);
+  const duration = parseInt(document.getElementById("taskDuration").value);
+  const now = new Date();
+  const slots = [];
+
+  for (let d = new Date(now); d <= due; d.setDate(d.getDate() + 1)) {
+    const dateStr = new Date(d).toDateString();
+    for (let h = START_HOUR; h <= END_HOUR; h++) {
+      const start = h * 60;
+      const conflict = events.some(e =>
+        e.date === dateStr &&
+        start < e.start + e.duration &&
+        start + duration > e.start
+      );
+      if (!conflict) slots.push({ date: dateStr, start });
+    }
+  }
+
+  if (!slots.length) return alert("No available slots before due date.");
+  const chosen = slots[Math.floor(Math.random() * slots.length)];
+  events.push({ title, ...chosen, duration, type: "task" });
+  localStorage.setItem("calendarEvents", JSON.stringify(events));
+  closeModal();
+  renderCalendar();
+  renderTaskList();
+}
+
+function openRoutineModal() {
+  const today = new Date().toISOString().split("T")[0];
+  openModal(`
+    <h3>Add Routine</h3>
+    <label>Title: <input id="routineTitle"></label><br>
+    <label>Start Date: <input type="date" id="routineStart" value="${today}"></label><br>
+    <label>Time: <input type="time" id="routineTime" value="07:30"></label><br>
+    <label>Duration (min): <input type="number" id="routineDuration" value="60"></label><br>
+    <button onclick="saveRoutine()">Save</button>
+    <button onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function saveRoutine() {
+  const title = document.getElementById("routineTitle").value.trim();
+  const start = new Date(document.getElementById("routineStart").value);
+  const [hour, min] = document.getElementById("routineTime").value.split(":").map(Number);
+  const duration = parseInt(document.getElementById("routineDuration").value);
+  for (let i = 0; i < 90; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const day = date.getDay();
+    if (day >= 1 && day <= 5) {
+      events.push({
+        title, date: date.toDateString(),
+        start: hour * 60 + min, duration, type: "routine"
+      });
+    }
+  }
+  localStorage.setItem("calendarEvents", JSON.stringify(events));
+  closeModal();
+  renderCalendar();
+  renderTaskList();
+}
+function deleteEvent(title, date, start) {
+  events = events.filter(e => !(e.title === title && e.date === date && e.start === start));
+  localStorage.setItem("calendarEvents", JSON.stringify(events));
+  renderCalendar();
+  renderTaskList();
+}
+
+
+function renderCalendar() {
+  calendarEl.innerHTML = "";
+  headerEl.innerHTML = "";
+
+  const view = getView();
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  if (view === "month") {
+    calendarEl.style.gridTemplateColumns = "repeat(7, 1fr)";
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const start = new Date(year, month, 1);
+    start.setDate(start.getDate() - start.getDay());
+
+    // Add month and year title
+    const monthTitle = document.createElement("div");
+    monthTitle.style.gridColumn = "span 7";
+    monthTitle.style.textAlign = "center";
+    monthTitle.style.fontSize = "18px";
+    monthTitle.style.padding = "8px";
+    monthTitle.style.fontWeight = "bold";
+    monthTitle.textContent = `${currentDate.toLocaleString("default", { month: "long" })} ${year}`;
+    headerEl.appendChild(monthTitle);
+
+    weekdays.forEach(d => {
+      const head = document.createElement("div");
+      head.textContent = d;
+      headerEl.appendChild(head);
+    });
+
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const dateStr = date.toDateString();
+      const cell = document.createElement("div");
+      cell.className = "calendar-cell";
+      cell.innerHTML = `<small>${date.getDate()}</small>`;
+      cell.onclick = () => openEventModal(date, 8);
+
+      events.filter(e => e.date === dateStr).forEach(e => {
+        const div = document.createElement("div");
+        div.className = `event ${e.type}`;
+        div.innerHTML = `
+          ${e.title}
+          <button onclick="event.stopPropagation(); editEvent('${e.title}', '${e.date}', ${e.start})" style="float:right; font-size:10px;">✏️</button>
+          <button onclick="event.stopPropagation(); deleteEvent('${e.title}', '${e.date}', ${e.start})" style="float:right; font-size:10px; margin-right:4px;">🗑️</button>
+        `;
+        if (e.completedAt) {
+          div.innerHTML += ` ✅ <small>${new Date(e.completedAt).toLocaleString()}</small>`;
+        }
+        cell.appendChild(div);
+      });
+
+      calendarEl.appendChild(cell);
+    }
+
+    renderTaskList();
+    return;
+  }
+
+  // Day or Week View
+  const days = view === "week" ? 7 : 1;
+  calendarEl.style.gridTemplateColumns = `60px repeat(${days}, 1fr)`;
+  const start = new Date(currentDate);
+  if (view === "week") start.setDate(start.getDate() - start.getDay());
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const dayLabel = weekdays[d.getDay()];
+    const dateLabel = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    const head = document.createElement("div");
+    head.innerHTML = `<div>${dayLabel}</div><small>${dateLabel}</small>`;
+    headerEl.appendChild(head);
+  }
+
+  for (let h = START_HOUR; h <= END_HOUR; h++) {
+    const label = document.createElement("div");
+    label.className = "calendar-cell";
+    label.style.background = "#f8f8f8";
+    label.innerText = `${h}:00`;
+    calendarEl.appendChild(label);
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const dateStr = d.toDateString();
+      const cell = document.createElement("div");
+      cell.className = "calendar-cell";
+      cell.style.position = "relative";
+      cell.onclick = () => openEventModal(d, h);
+
+      events
+        .filter(e => e.date === dateStr && e.start >= h * 60 && e.start < (h + 1) * 60)
+        .forEach(e => {
+          const div = document.createElement("div");
+          div.className = `event ${e.type}`;
+          const offset = ((e.start % 60) / 60) * 60;
+          const height = (e.duration / 60) * 60;
+          div.style.position = "absolute";
+          div.style.top = `${offset + 2}px`;
+          div.style.left = "2px";
+          div.style.right = "2px";
+          div.style.height = `${height}px`;
+          div.style.overflow = "hidden";
+
+          div.innerHTML = `
+            ${e.title}
+            <button onclick="editEvent('${e.title}', '${e.date}', ${e.start})" style="float:right; font-size:10px;">✏️</button>
+            <button onclick="deleteEvent('${e.title}', '${e.date}', ${e.start})" style="float:right; font-size:10px; margin-right:4px;">🗑️</button>
+          `;
+
+          if (e.completedAt) {
+            div.innerHTML += ` ✅ <small>${new Date(e.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>`;
+          }
+
+          cell.appendChild(div);
+        });
+
+      calendarEl.appendChild(cell);
+    }
+  }
+
+  renderTaskList();
+}
+
+
+function renderTaskList() {
+  taskListEl.innerHTML = "";
+  const tasks = events.filter(e => e.type === "task" && !e.completedAt);
+  if (!tasks.length) {
+    taskListEl.innerHTML = "<p>No tasks</p>";
+    return;
+  }
+
+  tasks.forEach(task => {
+    const item = document.createElement("div");
+    item.style.border = "1px solid #ccc";
+    item.style.borderRadius = "6px";
+    item.style.padding = "8px";
+    item.style.marginBottom = "8px";
+    item.style.background = "#fff";
+    item.style.transition = "opacity 0.5s ease";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.style.marginRight = "8px";
+    checkbox.onchange = () => completeTask(task, item);
+
+    const label = document.createElement("label");
+    label.textContent = `${task.title} (${task.date})`;
+
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    taskListEl.appendChild(item);
+  });
+}
+
+function completeTask(task, taskElement) {
+  task.completedAt = new Date().toISOString();
+  localStorage.setItem("calendarEvents", JSON.stringify(events));
+  taskElement.style.textDecoration = "line-through";
+  taskElement.style.opacity = "0.5";
+  setTimeout(() => {
+    renderTaskList();
+    renderCalendar();
+  }, 600);
+}
+
+renderCalendar();
+</script>
+
+
+
+  renderTaskList();
+}
+
+renderCalendar();
+</script>
+
+</body>
+</html>
+

@@ -108,6 +108,8 @@
       <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
       <button onclick="uploadToDrive()">📤 Sync to Drive</button>
       <button onclick="downloadFromDrive()">📥 Load from Drive</button>
+      <button onclick="tokenClient.requestAccessToken()">🔐 Sign In with Google</button>
+
     </div>
   </div>
 
@@ -526,11 +528,12 @@ let driveFileId = localStorage.getItem("driveFileId");
 
 // Helper: search for our events file by name on Drive
 async function findDriveFileId() {
-  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
-if (!accessToken) {
-  tokenClient.requestAccessToken();
-  return;
-}
+  if (!accessToken) {
+    tokenClient.requestAccessToken();
+    return null;
+  }
+
+  const query = encodeURIComponent("name='calendar-events.json' and trashed=false");
   const response = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`,
     {
@@ -540,6 +543,7 @@ if (!accessToken) {
   const data = await response.json();
   return data.files && data.files.length ? data.files[0].id : null;
 }
+
 
 // Upload (create or update) the JSON file to Drive
 async function uploadToDrive() {
@@ -617,19 +621,9 @@ async function downloadFromDrive() {
 // On page load, render the calendar and attempt to sync from Drive if already signed in
 window.onload = () => {
   renderCalendar();
-  // Wait a moment to check if signed in, then sync
-  gapi.load("client:auth2", () => {
-    gapi.client.init({
-      clientId: CLIENT_ID,
-      scope: SCOPES
-    }).then(() => {
-      const auth = gapi.auth2.getAuthInstance();
-      if (auth.isSignedIn.get()) {
-        downloadFromDrive();
-      }
-    });
-  });
+  initializeGapi(); // Use the modern flow only
 };
+
 </script>
 </body>
 </html>

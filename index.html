@@ -68,6 +68,9 @@
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+  <!-- Google API client for Drive (required for gapi) -->
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
   <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f0f0f0">
@@ -127,6 +130,14 @@
 
 
 <script>
+// Stub for Google Identity Services callback. GIS will invoke this after the user
+// completes the sign-in flow. We don't do anything here because the gapi
+// client will handle sign-in on page load.
+function onGoogleSignIn(response) {
+  console.log('Google One Tap callback:', response);
+  // gapi client initialization and sign-in happen in window.onload.
+}
+
 // Store events in localStorage, or start with an empty array
 let events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
 let currentDate = new Date();

@@ -523,7 +523,8 @@ const CLIENT_ID = "668394484464-nvle8a26s4ofktqm3arc4qig8ue73ntm.apps.googleuser
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 // Keep track of Drive file ID locally
-let driveFileId = localStorage.getItem("driveFileId");
+let driveFileId = null;
+
 
 // Helper: search for our events file by name on Drive
 async function findDriveFileId() {
@@ -576,8 +577,8 @@ async function uploadToDrive() {
       body: form,
     });
     const result = await res.json();
-    driveFileId = result.id;
-    localStorage.setItem("driveFileId", driveFileId);
+    driveFileId = result.id; // just keep in-memory
+
     alert("✅ Synced to Google Drive!");
   } catch (err) {
     alert("❌ Upload failed: " + err.message);
@@ -592,21 +593,12 @@ async function downloadFromDrive() {
     return;
   }
 
-  let fileId = driveFileId || localStorage.getItem("driveFileId");
-
-  // Try to find the file if we don't have a cached ID
+  const fileId = await findDriveFileId();
   if (!fileId) {
-    console.log("🔎 No cached file ID, searching Drive...");
-    fileId = await findDriveFileId();
-    if (!fileId) {
-      alert("❌ No calendar file found in your Drive. Please upload first.");
-      return;
-    }
-    driveFileId = fileId;
-    localStorage.setItem("driveFileId", fileId);
+    alert("❌ No calendar file found in your Drive. Please sync first.");
+    return;
   }
-
-  console.log("⬇️ Downloading from Drive file ID:", fileId);
+  driveFileId = fileId;
 
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
@@ -619,27 +611,20 @@ async function downloadFromDrive() {
     }
 
     const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Invalid JSON structure (expected an array)");
-    }
+    if (!Array.isArray(data)) throw new Error("Invalid JSON structure.");
 
     events = data;
     localStorage.setItem("calendarEvents", JSON.stringify(events));
     renderCalendar();
     renderTaskList();
-    alert("✅ Events loaded from Google Drive!");
+    alert("✅ Loaded from Google Drive!");
 
   } catch (err) {
-    console.error("❌ Failed to load from Drive:", err);
-
-    // If error might be due to a stale file ID, clear it
-    localStorage.removeItem("driveFileId");
-    driveFileId = null;
-
-    alert("❌ Could not load from Google Drive.\n\n" + err.message);
+    console.error("❌ Download failed:", err);
+    alert("❌ Could not load from Google Drive:\n\n" + err.message);
   }
 }
+
 
 
 

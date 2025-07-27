@@ -63,6 +63,11 @@
       background: white; padding: 20px;
       border-radius: 8px; width: 300px;
     }
+    .calendar-cell.today {
+      background-color: #d0f0d0 !important;
+      border: 2px solid #4CAF50;
+}
+
   </style>
 
   <!-- Google Identity Services -->
@@ -94,6 +99,7 @@
     <h2>Calendar</h2>
     <div class="calendar-controls">
       <button onclick="navigate(-1)">⬅️</button>
+      <button onclick="navigate(1)">➡️</button>
       <select id="viewSelect" onchange="renderCalendar()">
         <option value="day">Day</option>
         <option value="week" selected>Week</option>
@@ -308,6 +314,7 @@ function renderCalendar() {
 
   const view = getView();
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const todayStr = new Date().toDateString(); // for comparison
 
   if (view === "month") {
     calendarEl.style.gridTemplateColumns = "repeat(7, 1fr)";
@@ -316,7 +323,6 @@ function renderCalendar() {
     const start = new Date(year, month, 1);
     start.setDate(start.getDate() - start.getDay());
 
-    // Add month and year title
     const monthTitle = document.createElement("div");
     monthTitle.style.gridColumn = "span 7";
     monthTitle.style.textAlign = "center";
@@ -338,6 +344,11 @@ function renderCalendar() {
       const dateStr = date.toDateString();
       const cell = document.createElement("div");
       cell.className = "calendar-cell";
+
+      if (dateStr === todayStr) {
+        cell.classList.add("today");
+      }
+
       cell.innerHTML = `<small>${date.getDate()}</small>`;
       cell.onclick = () => openEventModal(date, 8);
 
@@ -392,6 +403,11 @@ function renderCalendar() {
       const dateStr = d.toDateString();
       const cell = document.createElement("div");
       cell.className = "calendar-cell";
+
+      if (dateStr === todayStr) {
+        cell.classList.add("today");
+      }
+
       cell.style.position = "relative";
       cell.onclick = () => openEventModal(d, h);
 
@@ -428,6 +444,7 @@ function renderCalendar() {
 
   renderTaskList();
 }
+
 
 // Render the task list side panel
 function renderTaskList() {

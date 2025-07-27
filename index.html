@@ -130,7 +130,7 @@
 
 
 <script>
-  
+
   let tokenClient;
 let accessToken = null;
 
@@ -527,7 +527,10 @@ let driveFileId = localStorage.getItem("driveFileId");
 // Helper: search for our events file by name on Drive
 async function findDriveFileId() {
   const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
-  const query = encodeURIComponent("name = 'calendar-events.json' and trashed = false");
+if (!accessToken) {
+  tokenClient.requestAccessToken();
+  return;
+}
   const response = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`,
     {

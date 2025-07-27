@@ -1,9 +1,11 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title> Calendar</title>
+  <title>Calendar</title>
+
+  <!-- Styles -->
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -28,15 +30,6 @@
     }
     #calendar {
       flex: 1; display: grid;
-    }
-    .time-column {
-      width: 60px;
-      display: flex; flex-direction: column;
-      border-right: 1px solid #ccc;
-    }
-    .time-slot {
-      height: 60px; font-size: 10px;
-      padding: 2px; border-bottom: 1px solid #ccc;
     }
     .calendar-cell {
       border: 1px solid #ccc; height: 60px;
@@ -71,24 +64,36 @@
       border-radius: 8px; width: 300px;
     }
   </style>
-  <script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
-
-   <meta name="theme-color" content="#f0f0f0">
-
+  <meta name="theme-color" content="#f0f0f0">
 </head>
+
 <body>
+  <!-- Export/Import Buttons -->
   <button onclick="downloadEvents()">⬇️ Export JSON</button>
   <input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
-<button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
-<button onclick="handleClientLoad()">🔐 Sign In</button>
-<button onclick="uploadToDrive()">📤 Sync to Drive</button>
+  <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
 
+  <!-- Google Sign-In Button -->
+  <div id="g_id_onload"
+       data-client_id="668394484464-nvle8a26s4ofktqm3arc4qig8ue73ntm.apps.googleusercontent.com"
+       data-callback="onGoogleSignIn"
+       data-auto_prompt="false">
+  </div>
 
+  <div class="g_id_signin"
+       data-type="standard"
+       data-size="large">
+  </div>
+
+  <!-- Calendar Controls -->
   <div class="calendar-header">
-    <h2> Calendar</h2>
+    <h2>Calendar</h2>
     <div class="calendar-controls">
       <button onclick="navigate(-1)">⬅️</button>
       <select id="viewSelect" onchange="renderCalendar()">
@@ -96,17 +101,15 @@
         <option value="week" selected>Week</option>
         <option value="month">Month</option>
       </select>
-  <button onclick="downloadEvents()">⬇️ Export JSON</button>
-<input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
-<button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
-<button onclick="handleClientLoad()">🔐 Sign In</button>
-<button onclick="uploadToDrive()">📤 Sync to Drive</button>
-<button onclick="downloadFromDrive()">📥 Load from Drive</button>
-
-
+      <button onclick="downloadEvents()">⬇️ Export JSON</button>
+      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
+      <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
+      <button onclick="uploadToDrive()">📤 Sync to Drive</button>
+      <button onclick="downloadFromDrive()">📥 Load from Drive</button>
     </div>
   </div>
 
+  <!-- Calendar + Task UI -->
   <div class="calendar-wrapper">
     <div class="calendar-view">
       <div id="weekdayHeaders" class="header-row"></div>
@@ -118,9 +121,11 @@
     </div>
   </div>
 
+  <!-- Event Modal -->
   <div class="modal-overlay" id="modal">
     <div class="modal" id="modalContent"></div>
   </div>
+
 
 <script>
 let events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");

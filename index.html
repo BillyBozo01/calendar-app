@@ -77,11 +77,6 @@
 </head>
 
 <body>
-  <!-- Export/Import Buttons -->
-  <button onclick="downloadEvents()">⬇️ Export JSON</button>
-  <input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
-  <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
-
   <!-- Google Sign-In Button -->
   <div id="g_id_onload"
        data-client_id="668394484464-nvle8a26s4ofktqm3arc4qig8ue73ntm.apps.googleusercontent.com"
@@ -104,8 +99,6 @@
         <option value="week" selected>Week</option>
         <option value="month">Month</option>
       </select>
-      <button onclick="downloadEvents()">⬇️ Export JSON</button>
-      <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
       <button onclick="uploadToDrive()">📤 Sync to Drive</button>
       <button onclick="downloadFromDrive()">📥 Load from Drive</button>
       <button onclick="tokenClient.requestAccessToken()">🔐 Sign In with Google</button>
@@ -479,46 +472,6 @@ function completeTask(task, taskElement) {
     renderCalendar();
   }, 600);
 }
-
-// Download events to a JSON file locally
-function downloadEvents() {
-  const dataStr = JSON.stringify(events, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "calendar-events.json";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  URL.revokeObjectURL(url);
-}
-
-// Import events from a JSON file and append them to current events
-function importEvents(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error("Invalid JSON format");
-      if (!confirm("Importing will add events to your current calendar. Continue?")) return;
-      events = events.concat(imported);
-      localStorage.setItem("calendarEvents", JSON.stringify(events));
-      renderCalendar();
-      renderTaskList();
-      alert("Import successful!");
-    } catch (err) {
-      alert("Failed to import JSON: " + err.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
 const CLIENT_ID = "668394484464-nvle8a26s4ofktqm3arc4qig8ue73ntm.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 

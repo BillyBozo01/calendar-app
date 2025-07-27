@@ -130,6 +130,26 @@
 
 
 <script>
+  
+  let tokenClient;
+let accessToken = null;
+
+function initializeGapi() {
+  gapi.load("client", async () => {
+    await gapi.client.init({});
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (tokenResponse) => {
+        accessToken = tokenResponse.access_token;
+        downloadFromDrive(); // Optional: auto sync
+      },
+    });
+
+    tokenClient.requestAccessToken(); // Auto-sign-in on load
+  });
+}
+
 // Stub for Google Identity Services callback. GIS will invoke this after the user
 // completes the sign-in flow. We don't do anything here because the gapi
 // client will handle sign-in on page load.
@@ -520,15 +540,20 @@ async function findDriveFileId() {
 
 // Upload (create or update) the JSON file to Drive
 async function uploadToDrive() {
+  if (!accessToken) {
+    tokenClient.requestAccessToken();
+    return;
+  }
+
   const fileContent = JSON.stringify(events, null, 2);
   const blob = new Blob([fileContent], { type: 'application/json' });
   const metadata = { name: 'calendar-events.json', mimeType: 'application/json' };
-  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
 
   // If we don't have a file ID cached, try to find one by name
   if (!driveFileId) {
     driveFileId = await findDriveFileId();
   }
+
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   form.append("file", blob);
@@ -542,35 +567,38 @@ async function uploadToDrive() {
     const res = await fetch(uploadUrl, {
       method,
       headers: new Headers({ Authorization: "Bearer " + accessToken }),
-      body: form
+      body: form,
     });
-    const val = await res.json();
-    driveFileId = val.id;
+    const result = await res.json();
+    driveFileId = result.id;
     localStorage.setItem("driveFileId", driveFileId);
     alert("✅ Synced to Google Drive!");
   } catch (err) {
-    console.error("Upload failed:", err);
+    alert("❌ Upload failed: " + err.message);
   }
 }
 
+
 // Download JSON data from Drive and replace current events
 async function downloadFromDrive() {
-  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+  if (!accessToken) {
+    tokenClient.requestAccessToken();
+    return;
+  }
+
   let fileId = driveFileId || localStorage.getItem("driveFileId");
   if (!fileId) {
     fileId = await findDriveFileId();
-    if (!fileId) {
-      return alert("No file found on Drive. Please upload first.");
-    }
+    if (!fileId) return alert("No file found on Drive. Please upload first.");
     driveFileId = fileId;
     localStorage.setItem("driveFileId", fileId);
   }
+
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: new Headers({ Authorization: "Bearer " + accessToken })
+      headers: new Headers({ Authorization: "Bearer " + accessToken }),
     });
-    const text = await res.text();
-    const data = JSON.parse(text);
+    const data = await res.json();
     if (!Array.isArray(data)) throw new Error("Invalid JSON from Drive.");
     events = data;
     localStorage.setItem("calendarEvents", JSON.stringify(events));
@@ -581,6 +609,7 @@ async function downloadFromDrive() {
     alert("❌ Failed to load: " + err.message);
   }
 }
+
 
 // On page load, render the calendar and attempt to sync from Drive if already signed in
 window.onload = () => {

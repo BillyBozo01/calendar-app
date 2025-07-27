@@ -102,7 +102,6 @@
         <option value="month">Month</option>
       </select>
       <button onclick="downloadEvents()">⬇️ Export JSON</button>
-      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importEvents(event)">
       <button onclick="document.getElementById('importInput').click()">📂 Import JSON</button>
       <button onclick="uploadToDrive()">📤 Sync to Drive</button>
       <button onclick="downloadFromDrive()">📥 Load from Drive</button>
@@ -128,6 +127,7 @@
 
 
 <script>
+// Store events in localStorage, or start with an empty array
 let events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
 let currentDate = new Date();
 const START_HOUR = 8, END_HOUR = 20;
@@ -137,22 +137,27 @@ const calendarEl = document.getElementById("calendar");
 const headerEl = document.getElementById("weekdayHeaders");
 const taskListEl = document.getElementById("taskList");
 
+// Get the currently selected view (day/week/month)
 function getView() {
   return document.getElementById("viewSelect").value;
 }
 
+// Navigate forward/backward in time depending on current view
 function navigate(dir) {
   if (getView() === "month") currentDate.setMonth(currentDate.getMonth() + dir);
   else currentDate.setDate(currentDate.getDate() + (getView() === "week" ? 7 : 1) * dir);
   renderCalendar();
 }
 
+// Open a modal with custom HTML content
 function openModal(html) {
   modalContent.innerHTML = html;
   modalEl.style.display = "flex";
 }
+// Close the modal
 function closeModal() { modalEl.style.display = "none"; }
 
+// Open the "Add Event" modal with optional default date & start hour
 function openEventModal(date = new Date(), hour = START_HOUR) {
   const dateStr = date.toISOString().split("T")[0];
   openModal(`
@@ -166,6 +171,7 @@ function openEventModal(date = new Date(), hour = START_HOUR) {
   `);
 }
 
+// Save an event to localStorage
 function saveEvent() {
   const title = document.getElementById("eventTitle").value.trim();
   const date = new Date(document.getElementById("eventDate").value).toDateString();
@@ -179,6 +185,7 @@ function saveEvent() {
   renderTaskList();
 }
 
+// Open the "Add Task" modal
 function openTaskModal() {
   const today = new Date().toISOString().split("T")[0];
   openModal(`
@@ -191,6 +198,7 @@ function openTaskModal() {
   `);
 }
 
+// Save a task and auto-schedule it before its due date
 function saveTask() {
   const title = document.getElementById("taskTitle").value.trim();
   const due = new Date(document.getElementById("taskDueDate").value);
@@ -220,6 +228,7 @@ function saveTask() {
   renderTaskList();
 }
 
+// Open the "Add Routine" modal
 function openRoutineModal() {
   const today = new Date().toISOString().split("T")[0];
   openModal(`
@@ -233,6 +242,7 @@ function openRoutineModal() {
   `);
 }
 
+// Save a routine by adding it for 90 weekdays in a row
 function saveRoutine() {
   const title = document.getElementById("routineTitle").value.trim();
   const start = new Date(document.getElementById("routineStart").value);
@@ -244,8 +254,11 @@ function saveRoutine() {
     const day = date.getDay();
     if (day >= 1 && day <= 5) {
       events.push({
-        title, date: date.toDateString(),
-        start: hour * 60 + min, duration, type: "routine"
+        title,
+        date: date.toDateString(),
+        start: hour * 60 + min,
+        duration,
+        type: "routine"
       });
     }
   }
@@ -254,6 +267,8 @@ function saveRoutine() {
   renderCalendar();
   renderTaskList();
 }
+
+// Delete an event by matching its title/date/start time
 function deleteEvent(title, date, start) {
   events = events.filter(e => !(e.title === title && e.date === date && e.start === start));
   localStorage.setItem("calendarEvents", JSON.stringify(events));
@@ -261,7 +276,7 @@ function deleteEvent(title, date, start) {
   renderTaskList();
 }
 
-
+// Render the calendar grid based on current view and events
 function renderCalendar() {
   calendarEl.innerHTML = "";
   headerEl.innerHTML = "";
@@ -389,7 +404,7 @@ function renderCalendar() {
   renderTaskList();
 }
 
-
+// Render the task list side panel
 function renderTaskList() {
   taskListEl.innerHTML = "";
   const tasks = events.filter(e => e.type === "task" && !e.completedAt);
@@ -421,6 +436,7 @@ function renderTaskList() {
   });
 }
 
+// Mark a task as complete and update UI
 function completeTask(task, taskElement) {
   task.completedAt = new Date().toISOString();
   localStorage.setItem("calendarEvents", JSON.stringify(events));
@@ -432,7 +448,7 @@ function completeTask(task, taskElement) {
   }, 600);
 }
 
-renderCalendar();
+// Download events to a JSON file locally
 function downloadEvents() {
   const dataStr = JSON.stringify(events, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
@@ -448,27 +464,7 @@ function downloadEvents() {
   URL.revokeObjectURL(url);
 }
 
-function importEvents() {
-  const fileInput = document.getElementById("importFile");
-  const file = fileInput.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const importedData = JSON.parse(e.target.result);
-      if (!Array.isArray(importedData)) throw new Error("Invalid format");
-      events = importedData;
-      localStorage.setItem("calendarEvents", JSON.stringify(events));
-      renderCalendar();
-      renderTaskList();
-      alert("Events imported successfully ✅");
-    } catch (err) {
-      alert("Error importing JSON file: " + err.message);
-    }
-  };
-  reader.readAsText(file);
-}
+// Import events from a JSON file and append them to current events
 function importEvents(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -494,79 +490,90 @@ function importEvents(event) {
 const CLIENT_ID = "668394484464-nvle8a26s4ofktqm3arc4qig8ue73ntm.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-function handleClientLoad() {
-  gapi.load("client:auth2", initClient);
-}
-
-function initClient() {
-  gapi.client.init({
-    clientId: CLIENT_ID,
-    scope: SCOPES
-  }).then(() => {
-    gapi.auth2.getAuthInstance().signIn().then(() => {
-      console.log("Signed in");
-    });
-  });
-}
-
+// Keep track of Drive file ID locally
 let driveFileId = localStorage.getItem("driveFileId");
 
-function uploadToDrive() {
+// Helper: search for our events file by name on Drive
+async function findDriveFileId() {
+  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+  const query = encodeURIComponent("name = 'calendar-events.json' and trashed = false");
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`,
+    {
+      headers: { Authorization: "Bearer " + accessToken }
+    }
+  );
+  const data = await response.json();
+  return data.files && data.files.length ? data.files[0].id : null;
+}
+
+// Upload (create or update) the JSON file to Drive
+async function uploadToDrive() {
   const fileContent = JSON.stringify(events, null, 2);
   const blob = new Blob([fileContent], { type: 'application/json' });
-  const metadata = {
-    name: 'calendar-events.json',
-    mimeType: 'application/json'
-  };
-
+  const metadata = { name: 'calendar-events.json', mimeType: 'application/json' };
   const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+
+  // If we don't have a file ID cached, try to find one by name
+  if (!driveFileId) {
+    driveFileId = await findDriveFileId();
+  }
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   form.append("file", blob);
 
+  const method = driveFileId ? "PATCH" : "POST";
   const uploadUrl = driveFileId
     ? `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=multipart`
     : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
 
-  fetch(uploadUrl, {
-    method: driveFileId ? "PATCH" : "POST",
-    headers: new Headers({ Authorization: "Bearer " + accessToken }),
-    body: form
-  })
-    .then(res => res.json())
-    .then(val => {
-      driveFileId = val.id;
-      localStorage.setItem("driveFileId", driveFileId);
-      alert("✅ Synced to Google Drive!");
-    })
-    .catch(err => console.error("Upload failed:", err));
-}
-function downloadFromDrive() {
-  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
-  const fileId = localStorage.getItem("driveFileId");
-
-  if (!fileId) {
-    return alert("No file found on Drive. Please upload first.");
+  try {
+    const res = await fetch(uploadUrl, {
+      method,
+      headers: new Headers({ Authorization: "Bearer " + accessToken }),
+      body: form
+    });
+    const val = await res.json();
+    driveFileId = val.id;
+    localStorage.setItem("driveFileId", driveFileId);
+    alert("✅ Synced to Google Drive!");
+  } catch (err) {
+    console.error("Upload failed:", err);
   }
+}
 
-  fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-    headers: new Headers({ Authorization: "Bearer " + accessToken })
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (!Array.isArray(data)) throw new Error("Invalid JSON from Drive.");
-      events = data;
-      localStorage.setItem("calendarEvents", JSON.stringify(events));
-      renderCalendar();
-      renderTaskList();
-      alert("✅ Loaded from Google Drive!");
-    })
-    .catch(err => alert("❌ Failed to load: " + err.message));
-    
-};
+// Download JSON data from Drive and replace current events
+async function downloadFromDrive() {
+  const accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+  let fileId = driveFileId || localStorage.getItem("driveFileId");
+  if (!fileId) {
+    fileId = await findDriveFileId();
+    if (!fileId) {
+      return alert("No file found on Drive. Please upload first.");
+    }
+    driveFileId = fileId;
+    localStorage.setItem("driveFileId", fileId);
+  }
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: new Headers({ Authorization: "Bearer " + accessToken })
+    });
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error("Invalid JSON from Drive.");
+    events = data;
+    localStorage.setItem("calendarEvents", JSON.stringify(events));
+    renderCalendar();
+    renderTaskList();
+    alert("✅ Loaded from Google Drive!");
+  } catch (err) {
+    alert("❌ Failed to load: " + err.message);
+  }
+}
+
+// On page load, render the calendar and attempt to sync from Drive if already signed in
 window.onload = () => {
   renderCalendar();
-
   // Wait a moment to check if signed in, then sync
   gapi.load("client:auth2", () => {
     gapi.client.init({
@@ -580,8 +587,6 @@ window.onload = () => {
     });
   });
 };
-
 </script>
 </body>
 </html>
-

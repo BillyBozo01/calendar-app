@@ -421,24 +421,25 @@ function renderCalendar() {
       cell.onclick = () => openEventModal(d, h);
 
       const isToday = dateStr === todayStr;
-      const isCurrentHour = h === now.getHours();
+const isCurrentHour = h === now.getHours();
 
-    if (isToday) {
-  if (view === "day" && isCurrentHour) {
-    const nowMin = now.getMinutes();
-    const currentQuarter = Math.floor(nowMin / 15);
-    const quarterStartMin = currentQuarter * 15;
-    const quarterTime = h * 60 + quarterStartMin;
-    const cellStart = h * 60;
-    const cellEnd = cellStart + 60;
+if (view === "day" && isToday && isCurrentHour) {
+  const nowMin = now.getMinutes();
+  const currentQuarter = Math.floor(nowMin / 15);
+  const quarterStartMin = currentQuarter * 15;
+  const quarterTime = h * 60 + quarterStartMin;
+  const cellStart = h * 60;
+  const cellEnd = cellStart + 60;
 
-    if (quarterTime >= cellStart && quarterTime < cellEnd) {
-      cell.classList.add("current-quarter-hour");
-    }
-  } else if (view === "week" && isCurrentHour) {
-    cell.classList.add("current-hour");
+  if (quarterTime >= cellStart && quarterTime < cellEnd) {
+    cell.classList.add("current-quarter-hour");
   }
 }
+
+if (view === "week" && isToday && isCurrentHour) {
+  cell.classList.add("current-hour");
+}
+
 
 
       events

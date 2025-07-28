@@ -420,7 +420,7 @@ function renderCalendar() {
       cell.style.position = "relative";
       cell.onclick = () => openEventModal(d, h);
 
-      const isToday = dateStr === todayStr;
+     const isToday = dateStr === todayStr;
 const isCurrentHour = h === now.getHours();
 
 if (view === "day" && isToday && isCurrentHour) {
@@ -434,9 +434,12 @@ if (view === "day" && isToday && isCurrentHour) {
   if (quarterTime >= cellStart && quarterTime < cellEnd) {
     cell.classList.add("current-quarter-hour");
   }
-} else if (view === "week" && isToday && isCurrentHour) {
+}
+
+if (view === "week" && isToday && isCurrentHour) {
   cell.classList.add("current-hour");
 }
+
       events
         .filter(e => e.date === dateStr && e.start >= h * 60 && e.start < (h + 1) * 60)
         .forEach(e => {

@@ -436,7 +436,11 @@ if (view === "day" && isToday && isCurrentHour) {
   if (quarterTime >= cellStart && quarterTime < cellEnd) {
     cell.classList.add("current-quarter-hour");
   }
+
+  // Remove week highlight in day view
+  cell.classList.remove("current-hour");
 }
+
 
 if (view === "week" && isToday && isCurrentHour) {
   cell.classList.add("current-hour");

@@ -70,12 +70,12 @@
 
 .current-hour {
   background-color: #fffbe6 !important;
-  border: 2px solid orange;
+  border: 2px solid #4CAF50;
 }
 
 .current-quarter-hour {
   background-color: #fffae6 !important;
-  border: 2px dashed #ffae00;
+  border: 2px dashed #4CAF50;
 }
 
 
@@ -434,14 +434,9 @@ if (view === "day" && isToday && isCurrentHour) {
   if (quarterTime >= cellStart && quarterTime < cellEnd) {
     cell.classList.add("current-quarter-hour");
   }
-}
-
-if (view === "week" && isToday && isCurrentHour) {
+} else if (view === "week" && isToday && isCurrentHour) {
   cell.classList.add("current-hour");
 }
-
-
-
       events
         .filter(e => e.date === dateStr && e.start >= h * 60 && e.start < (h + 1) * 60)
         .forEach(e => {

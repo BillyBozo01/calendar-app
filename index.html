@@ -11,83 +11,148 @@
       margin: 0; padding: 0;
       height: 100%; font-family: sans-serif;
     }
+
     body {
       display: flex; flex-direction: column; height: 100vh;
     }
+
     .calendar-header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 10px; background: #f0f0f0;
+      flex-wrap: wrap;
     }
+
     .calendar-controls select, .calendar-controls button {
       margin-left: 5px;
     }
+
     .calendar-wrapper {
       flex: 1; display: flex;
     }
+
     .calendar-view {
       flex: 1; display: flex; flex-direction: column;
       overflow: auto;
     }
+
     #calendar {
       flex: 1; display: grid;
     }
+
     .calendar-cell {
       border: 1px solid #ccc; height: 60px;
       position: relative;
       cursor: pointer;
+      font-size: 12px;
     }
+
     .header-row {
       display: grid; grid-template-columns: repeat(7, 1fr);
       background: #f9f9f9; font-weight: bold; text-align: center;
       border-bottom: 1px solid #ccc;
     }
+
     .event {
       position: absolute; top: 2px; left: 2px; right: 2px;
       background: lightblue; font-size: 10px; padding: 2px;
       border-radius: 3px;
     }
+
     .event.task { background: lightgreen; }
+
     .task-panel {
       width: 250px; background: #fafafa;
       padding: 10px; box-sizing: border-box;
       border-left: 1px solid #ccc;
       overflow-y: auto;
     }
+
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       display: none; justify-content: center; align-items: center;
       z-index: 1000;
     }
+
     .modal {
       background: white; padding: 20px;
       border-radius: 8px; width: 300px;
     }
+
     .calendar-cell.today {
-  background-color: #d0f0d0 !important;
-  border: 2px solid #4CAF50;
-}
+      background-color: #d0f0d0 !important;
+      border: 2px solid #4CAF50;
+    }
 
-.current-hour {
-  background-color: #fffbe6 !important;
-  border: 2px solid #4CAF50;
-}
+    .current-hour {
+      background-color: #fffbe6 !important;
+      border: 2px solid #4CAF50;
+    }
 
-.calendar-cell.current-quarter-hour {
-  background-color: #fffae6 !important;
-  border: 2px dashed #4CAF50;
-  z-index: 10;
-}
+    .calendar-cell.current-quarter-hour {
+      background-color: #fffae6 !important;
+      border: 2px dashed #4CAF50;
+      z-index: 10;
+    }
 
+    /* 📱 Responsive Design for Phones */
+    @media (max-width: 600px) {
+      .calendar-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
 
+      .calendar-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        width: 100%;
+      }
 
+      .calendar-wrapper {
+        flex-direction: column;
+      }
 
+      .task-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #ccc;
+        max-height: 200px;
+      }
+
+      .calendar-view {
+        overflow-x: auto;
+      }
+
+      .header-row {
+        font-size: 12px;
+      }
+
+      .calendar-cell {
+        font-size: 10px;
+        min-height: 40px;
+      }
+
+      .event {
+        font-size: 9px;
+      }
+
+      .modal {
+        width: 90%;
+      }
+
+      .g_id_signin {
+        transform: scale(0.85);
+        transform-origin: left;
+      }
+    }
   </style>
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Google API client for Drive (required for gapi) -->
+  <!-- Google API client for Drive -->
   <script src="https://apis.google.com/js/api.js" async defer></script>
 
   <!-- PWA manifest -->
@@ -123,7 +188,6 @@
       <button onclick="uploadToDrive()">📤 Sync to Drive</button>
       <button onclick="downloadFromDrive()">📥 Load from Drive</button>
       <button onclick="tokenClient.requestAccessToken()">🔐 Sign In with Google</button>
-
     </div>
   </div>
 
@@ -143,8 +207,6 @@
   <div class="modal-overlay" id="modal">
     <div class="modal" id="modalContent"></div>
   </div>
-
-
 <script>
 
   let tokenClient;

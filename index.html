@@ -221,6 +221,12 @@ function initializeGapi() {
       scope: SCOPES,
       callback: (tokenResponse) => {
         accessToken = tokenResponse.access_token;
+        callback: (tokenResponse) => {
+  accessToken = tokenResponse.access_token;
+  console.log("✅ Access token received. Now downloading from Drive...");
+  downloadFromDrive();
+},
+
         downloadFromDrive(); // Auto-load from Drive after sign-in
       },
     });

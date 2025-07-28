@@ -207,6 +207,7 @@
   <div class="modal-overlay" id="modal">
     <div class="modal" id="modalContent"></div>
   </div>
+
 <script>
 
   let tokenClient;
@@ -220,12 +221,15 @@ function initializeGapi() {
       scope: SCOPES,
       callback: (tokenResponse) => {
         accessToken = tokenResponse.access_token;
-        downloadFromDrive(); // Optional: auto sync
+        downloadFromDrive(); // Auto-load from Drive after sign-in
       },
     });
 
+    // Try to silently get access token without user prompt
+    tokenClient.requestAccessToken({ prompt: '' });
   });
 }
+
 
 // Stub for Google Identity Services callback. GIS will invoke this after the user
 // completes the sign-in flow. We don't do anything here because the gapi
@@ -288,6 +292,7 @@ function saveEvent() {
   const duration = parseInt(document.getElementById("eventDuration").value);
   events.push({ title, date, start, duration, type: "event" });
   localStorage.setItem("calendarEvents", JSON.stringify(events));
+  uploadToDrive();
   closeModal();
   renderCalendar();
   renderTaskList();
@@ -332,6 +337,7 @@ function saveTask() {
   events.push({ title, ...chosen, duration, type: "task" });
   localStorage.setItem("calendarEvents", JSON.stringify(events));
   closeModal();
+  uploadToDrive();
   renderCalendar();
   renderTaskList();
 }
@@ -348,6 +354,7 @@ function openRoutineModal() {
     <button onclick="saveRoutine()">Save</button>
     <button onclick="closeModal()">Cancel</button>
   `);
+  
 }
 
 // Save a routine by adding it for 90 weekdays in a row
@@ -372,6 +379,7 @@ function saveRoutine() {
   }
   localStorage.setItem("calendarEvents", JSON.stringify(events));
   closeModal();
+  uploadToDrive();
   renderCalendar();
   renderTaskList();
 }
@@ -382,6 +390,7 @@ function deleteEvent(title, date, start) {
   localStorage.setItem("calendarEvents", JSON.stringify(events));
   renderCalendar();
   renderTaskList();
+  uploadToDrive();
 }
 
 // Render the calendar grid based on current view and events

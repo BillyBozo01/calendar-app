@@ -70,37 +70,72 @@
   </div>
 
   <script>
-    const events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+  let events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
 
-    const now = new Date();
-    const endOfWeek = new Date();
-    endOfWeek.setDate(now.getDate() + 7);
+  const now = new Date();
+  const endOfWeek = new Date();
+  endOfWeek.setDate(now.getDate() + 7);
 
-    const endOfMonth = new Date();
-    endOfMonth.setMonth(now.getMonth() + 1);
-    endOfMonth.setDate(1);
-    endOfMonth.setDate(endOfMonth.getDate() - 1); // last day of current month
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // last day of current month
 
-    const weekColumn = document.getElementById("weekColumn");
-    const monthColumn = document.getElementById("monthColumn");
-    const laterColumn = document.getElementById("laterColumn");
+  const weekColumn = document.getElementById("weekColumn");
+  const monthColumn = document.getElementById("monthColumn");
+  const laterColumn = document.getElementById("laterColumn");
 
-    events
-      .filter(e => e.type === "task" && !e.completedAt)
-      .forEach(task => {
-        const dueDate = new Date(task.date);
-        const card = document.createElement("div");
-        card.className = "task-card";
-        card.textContent = `${task.title} - Due: ${dueDate.toLocaleDateString()}`;
+  function saveEvents() {
+    localStorage.setItem("calendarEvents", JSON.stringify(events));
+    location.reload(); // refresh board after change
+  }
 
-        if (dueDate <= endOfWeek) {
-          weekColumn.appendChild(card);
-        } else if (dueDate <= endOfMonth) {
-          monthColumn.appendChild(card);
-        } else {
-          laterColumn.appendChild(card);
-        }
-      });
-  </script>
+  function renderTaskCard(task) {
+    const dueDate = new Date(task.date);
+    const card = document.createElement("div");
+    card.className = "task-card";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.style.marginRight = "8px";
+    checkbox.onchange = () => {
+      task.completedAt = new Date().toISOString();
+      saveEvents();
+    };
+
+    const label = document.createElement("span");
+    label.textContent = `${task.title} - Due: ${dueDate.toLocaleDateString()}`;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑️";
+    delBtn.style.float = "right";
+    delBtn.style.border = "none";
+    delBtn.style.background = "transparent";
+    delBtn.style.cursor = "pointer";
+    delBtn.onclick = () => {
+      events = events.filter(e => !(e.title === task.title && e.date === task.date && e.start === task.start));
+      saveEvents();
+    };
+
+    card.appendChild(checkbox);
+    card.appendChild(label);
+    card.appendChild(delBtn);
+
+    return card;
+  }
+
+  events
+    .filter(e => e.type === "task" && !e.completedAt)
+    .forEach(task => {
+      const dueDate = new Date(task.date);
+      const card = renderTaskCard(task);
+
+      if (dueDate <= endOfWeek) {
+        weekColumn.appendChild(card);
+      } else if (dueDate <= endOfMonth) {
+        monthColumn.appendChild(card);
+      } else {
+        laterColumn.appendChild(card);
+      }
+    });
+</script>
+
 </body>
 </html>

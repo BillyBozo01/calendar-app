@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Board</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .board {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 250px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 10px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .column h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+
+    .task-card {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 8px;
+      margin-bottom: 10px;
+      background: #e3f2fd;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 Agile Task Board</h1>
+  <div class="board">
+    <div class="column" id="weekColumn">
+      <h2>🗓️ This Week</h2>
+    </div>
+    <div class="column" id="monthColumn">
+      <h2>📅 This Month</h2>
+    </div>
+    <div class="column" id="laterColumn">
+      <h2>📆 Later</h2>
+    </div>
+  </div>
+
+  <script>
+    const events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+
+    const now = new Date();
+    const endOfWeek = new Date();
+    endOfWeek.setDate(now.getDate() + 7);
+
+    const endOfMonth = new Date();
+    endOfMonth.setMonth(now.getMonth() + 1);
+    endOfMonth.setDate(1);
+    endOfMonth.setDate(endOfMonth.getDate() - 1); // last day of current month
+
+    const weekColumn = document.getElementById("weekColumn");
+    const monthColumn = document.getElementById("monthColumn");
+    const laterColumn = document.getElementById("laterColumn");
+
+    events
+      .filter(e => e.type === "task" && !e.completedAt)
+      .forEach(task => {
+        const dueDate = new Date(task.date);
+        const card = document.createElement("div");
+        card.className = "task-card";
+        card.textContent = `${task.title} - Due: ${dueDate.toLocaleDateString()}`;
+
+        if (dueDate <= endOfWeek) {
+          weekColumn.appendChild(card);
+        } else if (dueDate <= endOfMonth) {
+          monthColumn.appendChild(card);
+        } else {
+          laterColumn.appendChild(card);
+        }
+      });
+  </script>
+</body>
+</html>
